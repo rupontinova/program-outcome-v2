@@ -1,7 +1,7 @@
 // src/pages/admin/student-entry.tsx
 import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import AdminNavbar from '../../components/admin/AdminNavbar';
 import '../../styles/admin/homepage.css'; // Reusing styles for consistency
 
@@ -132,45 +132,58 @@ const StudentEntryPage = () => {
         const file = acceptedFiles[0];
         const reader = new FileReader();
 
-        reader.onload = (e) => {
-            const data = new Uint8Array(e.target?.result as ArrayBuffer);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
+        reader.onload = async (e) => {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            if (!arrayBuffer) return;
 
-            // Heuristic to find header row and student data
-            let studentIdCol = -1;
-            let nameCol = -1;
-            let startRow = -1;
+            try {
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+                const worksheet = workbook.worksheets[0];
 
-            for (let i = 0; i < json.length; i++) {
-                const row = json[i];
-                for (let j = 0; j < row.length; j++) {
-                    const cell = String(row[j]).toLowerCase();
-                    if (cell.includes('studentid')) studentIdCol = j;
-                    if (cell.includes('full name')) nameCol = j;
-                }
-                if (studentIdCol !== -1 && nameCol !== -1) {
-                    startRow = i + 1;
-                    break;
-                }
-            }
+                let studentIdCol = -1;
+                let nameCol = -1;
+                let headerRow = -1;
 
-            if (startRow !== -1) {
-                const parsedStudents: Student[] = [];
-                for (let i = startRow; i < json.length; i++) {
-                    const row = json[i];
-                    const studentId = row[studentIdCol];
-                    const name = row[nameCol];
-                    if (studentId && name) {
-                        parsedStudents.push({ id: String(studentId), name: String(name) });
+                worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                    if (headerRow !== -1) return;
+                    
+                    row.eachCell((cell, colNumber) => {
+                        if (typeof cell.value === 'string') {
+                            const lowerCaseValue = cell.value.toLowerCase();
+                            if (lowerCaseValue.includes('studentid')) {
+                                studentIdCol = colNumber;
+                            }
+                            if (lowerCaseValue.includes('full name')) {
+                                nameCol = colNumber;
+                            }
+                        }
+                    });
+
+                    if (studentIdCol !== -1 && nameCol !== -1) {
+                        headerRow = rowNumber;
                     }
+                });
+
+                if (headerRow !== -1) {
+                    const parsedStudents: Student[] = [];
+                    for (let i = headerRow + 1; i <= worksheet.rowCount; i++) {
+                        const row = worksheet.getRow(i);
+                        const studentIdValue = row.getCell(studentIdCol).value;
+                        const nameValue = row.getCell(nameCol).value;
+
+                        if (studentIdValue && nameValue) {
+                            parsedStudents.push({ id: String(studentIdValue), name: String(nameValue) });
+                        }
+                    }
+                    setStudents(parsedStudents);
+                    setIsUploadModalOpen(true);
+                } else {
+                    alert('Could not find "StudentID" and "Full Name" columns in the Excel file.');
                 }
-                setStudents(parsedStudents);
-                setIsUploadModalOpen(true);
-            } else {
-                alert('Could not find "StudentID" and "Full Name" columns in the Excel file.');
+            } catch (error) {
+                console.error('Failed to parse Excel file:', error);
+                alert('Failed to parse Excel file. Please ensure it is a valid .xlsx file.');
             }
         };
         reader.readAsArrayBuffer(file);
