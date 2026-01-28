@@ -43,6 +43,23 @@ interface ProfileAchievement {
     personalAchieved: number;
 }
 
+interface AssessmentDetail {
+    courseId: string;
+    co_no: string;
+    assessmentType: string;
+    session: string;
+    obtainedMark: number | string;
+    passMark: number;
+    passed: boolean;
+    profiles: {
+        blooms: string[];
+        fundamental: string[];
+        social: string[];
+        thinking: string[];
+        personal: string[];
+    };
+}
+
 const StudentInfoPage = () => {
     const [studentId, setStudentId] = useState('');
     const [studentData, setStudentData] = useState<StudentResult[]>([]);
@@ -50,6 +67,7 @@ const StudentInfoPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [profileAchievement, setProfileAchievement] = useState<ProfileAchievement | null>(null);
+    const [assessmentDetails, setAssessmentDetails] = useState<AssessmentDetail[]>([]);
     const chartRef = useRef<ChartJS<"bar">>(null);
 
     useEffect(() => {
@@ -72,6 +90,8 @@ const StudentInfoPage = () => {
             personalTotal: 0,
             personalAchieved: 0,
         };
+
+        const details: AssessmentDetail[] = [];
 
         // Group by courseId and session to fetch objectives
         const courseGroups = results.reduce((acc, result) => {
@@ -99,6 +119,24 @@ const StudentInfoPage = () => {
                         
                         if (objective) {
                             const passed = typeof result.obtainedMark === 'number' && result.obtainedMark >= result.passMark;
+                            
+                            // Store assessment detail
+                            details.push({
+                                courseId: result.courseId,
+                                co_no: result.co_no,
+                                assessmentType: result.assessmentType,
+                                session: result.session,
+                                obtainedMark: result.obtainedMark,
+                                passMark: result.passMark,
+                                passed,
+                                profiles: {
+                                    blooms: objective.bloomsTaxonomy || [],
+                                    fundamental: objective.fundamentalProfile || [],
+                                    social: objective.socialProfile || [],
+                                    thinking: objective.thinkingProfile || [],
+                                    personal: objective.personalProfile || [],
+                                },
+                            });
                             
                             // Count Bloom's
                             if (objective.bloomsTaxonomy && objective.bloomsTaxonomy.length > 0) {
@@ -137,7 +175,7 @@ const StudentInfoPage = () => {
             }
         }
 
-        return achievement;
+        return { achievement, details };
     };
 
     const handleFetchData = async () => {
@@ -150,6 +188,7 @@ const StudentInfoPage = () => {
         setStudentData([]);
         setStudentName('');
         setProfileAchievement(null);
+        setAssessmentDetails([]);
 
         try {
             const res = await fetch(`/api/admin/student?studentId=${studentId}`, { cache: 'no-store' });
@@ -162,8 +201,9 @@ const StudentInfoPage = () => {
             if (data.length > 0) {
                 setStudentName(data[0].studentName);
                 // Calculate profile achievements
-                const achievements = await calculateProfileAchievement(data);
-                setProfileAchievement(achievements);
+                const { achievement, details } = await calculateProfileAchievement(data);
+                setProfileAchievement(achievement);
+                setAssessmentDetails(details);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -401,6 +441,176 @@ const StudentInfoPage = () => {
                                         <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
                                             <strong>Personal:</strong> {profileAchievement.personalAchieved}/{profileAchievement.personalTotal}
                                         </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {assessmentDetails.length > 0 && (
+                                <div className="card" style={{ marginBottom: '1.5rem' }}>
+                                    <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                                        Assessment-wise Profile Breakdown
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        {assessmentDetails.map((detail, index) => (
+                                            <div 
+                                                key={index} 
+                                                style={{ 
+                                                    border: '1px solid #e5e7eb', 
+                                                    borderRadius: '0.5rem', 
+                                                    padding: '1rem',
+                                                    backgroundColor: detail.passed ? '#f0fdf4' : '#fef2f2'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                    <div>
+                                                        <h4 style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '0.25rem' }}>
+                                                            {detail.courseId} - {detail.co_no}
+                                                        </h4>
+                                                        <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                                                            {detail.assessmentType} | {detail.session}
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ 
+                                                            display: 'inline-block',
+                                                            padding: '0.25rem 0.75rem', 
+                                                            borderRadius: '9999px',
+                                                            backgroundColor: detail.passed ? '#10b981' : '#ef4444',
+                                                            color: 'white',
+                                                            fontWeight: 'bold',
+                                                            fontSize: '0.875rem'
+                                                        }}>
+                                                            {detail.passed ? '✓ PASSED' : '✗ FAILED'}
+                                                        </div>
+                                                        <p style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: '#6b7280' }}>
+                                                            {String(detail.obtainedMark)}/{detail.passMark}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.875rem' }}>
+                                                    {detail.profiles.blooms.length > 0 && (
+                                                        <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
+                                                            <strong style={{ color: '#3b82f6' }}>Bloom's:</strong>
+                                                            <div style={{ marginTop: '0.25rem' }}>
+                                                                {detail.profiles.blooms.map(code => (
+                                                                    <span 
+                                                                        key={code}
+                                                                        style={{ 
+                                                                            display: 'inline-block',
+                                                                            padding: '2px 6px',
+                                                                            margin: '2px',
+                                                                            backgroundColor: detail.passed ? '#dbeafe' : '#fee2e2',
+                                                                            color: detail.passed ? '#1e40af' : '#991b1b',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '0.75rem'
+                                                                        }}
+                                                                    >
+                                                                        {code} {detail.passed ? '✓' : '✗'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {detail.profiles.fundamental.length > 0 && (
+                                                        <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
+                                                            <strong style={{ color: '#10b981' }}>Fundamental:</strong>
+                                                            <div style={{ marginTop: '0.25rem' }}>
+                                                                {detail.profiles.fundamental.map(code => (
+                                                                    <span 
+                                                                        key={code}
+                                                                        style={{ 
+                                                                            display: 'inline-block',
+                                                                            padding: '2px 6px',
+                                                                            margin: '2px',
+                                                                            backgroundColor: detail.passed ? '#d1fae5' : '#fee2e2',
+                                                                            color: detail.passed ? '#065f46' : '#991b1b',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '0.75rem'
+                                                                        }}
+                                                                    >
+                                                                        {code} {detail.passed ? '✓' : '✗'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {detail.profiles.social.length > 0 && (
+                                                        <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
+                                                            <strong style={{ color: '#f59e0b' }}>Social:</strong>
+                                                            <div style={{ marginTop: '0.25rem' }}>
+                                                                {detail.profiles.social.map(code => (
+                                                                    <span 
+                                                                        key={code}
+                                                                        style={{ 
+                                                                            display: 'inline-block',
+                                                                            padding: '2px 6px',
+                                                                            margin: '2px',
+                                                                            backgroundColor: detail.passed ? '#fef3c7' : '#fee2e2',
+                                                                            color: detail.passed ? '#92400e' : '#991b1b',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '0.75rem'
+                                                                        }}
+                                                                    >
+                                                                        {code} {detail.passed ? '✓' : '✗'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {detail.profiles.thinking.length > 0 && (
+                                                        <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
+                                                            <strong style={{ color: '#8b5cf6' }}>Thinking:</strong>
+                                                            <div style={{ marginTop: '0.25rem' }}>
+                                                                {detail.profiles.thinking.map(code => (
+                                                                    <span 
+                                                                        key={code}
+                                                                        style={{ 
+                                                                            display: 'inline-block',
+                                                                            padding: '2px 6px',
+                                                                            margin: '2px',
+                                                                            backgroundColor: detail.passed ? '#ede9fe' : '#fee2e2',
+                                                                            color: detail.passed ? '#5b21b6' : '#991b1b',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '0.75rem'
+                                                                        }}
+                                                                    >
+                                                                        {code} {detail.passed ? '✓' : '✗'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {detail.profiles.personal.length > 0 && (
+                                                        <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
+                                                            <strong style={{ color: '#ec4899' }}>Personal:</strong>
+                                                            <div style={{ marginTop: '0.25rem' }}>
+                                                                {detail.profiles.personal.map(code => (
+                                                                    <span 
+                                                                        key={code}
+                                                                        style={{ 
+                                                                            display: 'inline-block',
+                                                                            padding: '2px 6px',
+                                                                            margin: '2px',
+                                                                            backgroundColor: detail.passed ? '#fce7f3' : '#fee2e2',
+                                                                            color: detail.passed ? '#9f1239' : '#991b1b',
+                                                                            borderRadius: '4px',
+                                                                            fontSize: '0.75rem'
+                                                                        }}
+                                                                    >
+                                                                        {code} {detail.passed ? '✓' : '✗'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
