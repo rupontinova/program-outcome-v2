@@ -1,6 +1,6 @@
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = "mongodb+srv://root:root@bice.l5pnh7p.mongodb.net/?retryWrites=true&w=majority&appName=BICE";
+const MONGODB_URI = "mongodb+srv://root:root@bice.l5pnh7p.mongodb.net/BUP_obe_v2?retryWrites=true&w=majority&appName=BICE";
 
 if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
