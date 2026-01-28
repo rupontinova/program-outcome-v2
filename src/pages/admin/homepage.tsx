@@ -114,13 +114,12 @@ const AdminHomePage = () => {
         if (!dashboardData.length || !selectedPo || !selectedSession) return;
 
         const doc: jsPDFWithAutoTable = new jsPDF();
-        const poName = PROGRAM_OUTCOMES.find(p => p.no === selectedPo)?.name || '';
 
         // PDF Header
         doc.setFontSize(18);
         doc.text('Program Outcome Achievement Report', 14, 22);
         doc.setFontSize(12);
-        doc.text(`Program Outcome: ${selectedPo}: ${poName}`, 14, 32);
+        doc.text(`Program Outcome: ${selectedPo}`, 14, 32);
         doc.text(`Session: ${selectedSession}`, 14, 38);
 
         let startY = 45; // Initial Y position for the first table
@@ -165,8 +164,6 @@ const AdminHomePage = () => {
         doc.save(`PO_Report_${selectedPo}_${selectedSession}.pdf`);
     };
     
-    const selectedPoName = PROGRAM_OUTCOMES.find(p => p.no === selectedPo)?.name;
-
     return (
         <>
             <Head>
@@ -201,7 +198,7 @@ const AdminHomePage = () => {
                             <div className="custom-select">
                                 <button id="po-select" className="custom-select-toggle" onClick={() => handleDropdownToggle('po')}>
                                     <span className={!selectedPo ? 'placeholder' : ''}>
-                                        {selectedPo ? `${selectedPo}: ${PROGRAM_OUTCOMES.find(p => p.no === selectedPo)?.name}` : 'Select a PO'}
+                                        {selectedPo || 'Select a PO'}
                                     </span>
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="20" width="20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                                 </button>
@@ -210,7 +207,7 @@ const AdminHomePage = () => {
                                         <div className="custom-select-option" onClick={() => handlePoSelect('')}>Select a PO</div>
                                         {PROGRAM_OUTCOMES.map(po => (
                                             <div key={po.no} className={`custom-select-option ${selectedPo === po.no ? 'selected' : ''}`} onClick={() => handlePoSelect(po.no)}>
-                                                {po.no}: {po.name}
+                                                {po.no}
                                             </div>
                                         ))}
                                     </div>
@@ -227,7 +224,7 @@ const AdminHomePage = () => {
                     {dashboardData.length > 0 && (
                         <div className="results-header">
                             <div>
-                                <h2 className="po-title">{selectedPo}: {selectedPoName}</h2>
+                                <h2 className="po-title">{selectedPo}</h2>
                                 <p className="po-name">Showing {dashboardData.length} entries</p>
                             </div>
                             <button onClick={generatePdf} className="btn-fetch">
