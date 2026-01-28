@@ -417,7 +417,7 @@ const StudentInfoPage = () => {
                                                                     profileAchievement.thinkingAchieved,
                                                                     profileAchievement.personalAchieved,
                                                                 ];
-                                                                return `${profileNames[index]}: ${achieved[index]}/${totals[index]} (${context.parsed.y.toFixed(1)}%)`;
+                                                                return `${profileNames[index]}: ${achieved[index]}/${totals[index]} (${context.parsed.y?.toFixed(1) || 0}%)`;
                                                             },
                                                         },
                                                     },
@@ -427,7 +427,7 @@ const StudentInfoPage = () => {
                                     </div>
                                     <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', fontSize: '0.875rem' }}>
                                         <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
-                                            <strong>Bloom's:</strong> {profileAchievement.bloomsAchieved}/{profileAchievement.bloomsTotal}
+                                            <strong>Bloom&apos;s:</strong> {profileAchievement.bloomsAchieved}/{profileAchievement.bloomsTotal}
                                         </div>
                                         <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
                                             <strong>Fundamental:</strong> {profileAchievement.fundamentalAchieved}/{profileAchievement.fundamentalTotal}
@@ -491,7 +491,7 @@ const StudentInfoPage = () => {
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.875rem' }}>
                                                     {detail.profiles.blooms.length > 0 && (
                                                         <div style={{ padding: '0.5rem', backgroundColor: 'white', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
-                                                            <strong style={{ color: '#3b82f6' }}>Bloom's:</strong>
+                                                            <strong style={{ color: '#3b82f6' }}>Bloom&apos;s:</strong>
                                                             <div style={{ marginTop: '0.25rem' }}>
                                                                 {detail.profiles.blooms.map(code => (
                                                                     <span 
