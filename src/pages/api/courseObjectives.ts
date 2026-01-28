@@ -24,6 +24,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 knowledgeProfile: obj.knowledgeProfile || [],
                 complexEngineeringProblem: obj.complexEngineeringProblem || [],
                 complexEngineeringActivity: obj.complexEngineeringActivity || [],
+                personalProfile: obj.personalProfile || [],
             }));
 
             const result = await coursesCollection.updateOne(
