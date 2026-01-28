@@ -1,9 +1,13 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import AdminNavbar from '../../components/admin/AdminNavbar';
 import '../../styles/admin/homepage.css';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface StudentResult {
     _id: string;
@@ -18,12 +22,35 @@ interface StudentResult {
     studentName: string;
 }
 
+interface CourseObjective {
+    bloomsTaxonomy?: string[];
+    fundamentalProfile?: string[];
+    socialProfile?: string[];
+    thinkingProfile?: string[];
+    personalProfile?: string[];
+}
+
+interface ProfileAchievement {
+    bloomsTotal: number;
+    bloomsAchieved: number;
+    fundamentalTotal: number;
+    fundamentalAchieved: number;
+    socialTotal: number;
+    socialAchieved: number;
+    thinkingTotal: number;
+    thinkingAchieved: number;
+    personalTotal: number;
+    personalAchieved: number;
+}
+
 const StudentInfoPage = () => {
     const [studentId, setStudentId] = useState('');
     const [studentData, setStudentData] = useState<StudentResult[]>([]);
     const [studentName, setStudentName] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [profileAchievement, setProfileAchievement] = useState<ProfileAchievement | null>(null);
+    const chartRef = useRef<ChartJS<"bar">>(null);
 
     useEffect(() => {
         document.body.classList.add('admin-homepage');
@@ -31,6 +58,87 @@ const StudentInfoPage = () => {
             document.body.classList.remove('admin-homepage');
         }
     }, []);
+
+    const calculateProfileAchievement = async (results: StudentResult[]) => {
+        const achievement: ProfileAchievement = {
+            bloomsTotal: 0,
+            bloomsAchieved: 0,
+            fundamentalTotal: 0,
+            fundamentalAchieved: 0,
+            socialTotal: 0,
+            socialAchieved: 0,
+            thinkingTotal: 0,
+            thinkingAchieved: 0,
+            personalTotal: 0,
+            personalAchieved: 0,
+        };
+
+        // Group by courseId and session to fetch objectives
+        const courseGroups = results.reduce((acc, result) => {
+            const key = `${result.courseId}-${result.session}-${result.teacherId}`;
+            if (!acc[key]) {
+                acc[key] = { courseId: result.courseId, session: result.session, teacherId: result.teacherId, results: [] };
+            }
+            acc[key].results.push(result);
+            return acc;
+        }, {} as Record<string, { courseId: string; session: string; teacherId: string; results: StudentResult[] }>);
+
+        // Fetch objectives for each course
+        for (const group of Object.values(courseGroups)) {
+            try {
+                const res = await fetch(
+                    `/api/getCourseObjectives?teacherId=${group.teacherId}&courseId=${group.courseId}&session=${group.session}`
+                );
+                if (res.ok) {
+                    const objectives: CourseObjective[] = await res.json();
+                    
+                    // Match each result with its objective
+                    for (const result of group.results) {
+                        const coIndex = parseInt(result.co_no.replace('CO', '')) - 1;
+                        const objective = objectives[coIndex];
+                        
+                        if (objective) {
+                            const passed = typeof result.obtainedMark === 'number' && result.obtainedMark >= result.passMark;
+                            
+                            // Count Bloom's
+                            if (objective.bloomsTaxonomy && objective.bloomsTaxonomy.length > 0) {
+                                achievement.bloomsTotal += objective.bloomsTaxonomy.length;
+                                if (passed) achievement.bloomsAchieved += objective.bloomsTaxonomy.length;
+                            }
+                            
+                            // Count Fundamental
+                            if (objective.fundamentalProfile && objective.fundamentalProfile.length > 0) {
+                                achievement.fundamentalTotal += objective.fundamentalProfile.length;
+                                if (passed) achievement.fundamentalAchieved += objective.fundamentalProfile.length;
+                            }
+                            
+                            // Count Social
+                            if (objective.socialProfile && objective.socialProfile.length > 0) {
+                                achievement.socialTotal += objective.socialProfile.length;
+                                if (passed) achievement.socialAchieved += objective.socialProfile.length;
+                            }
+                            
+                            // Count Thinking
+                            if (objective.thinkingProfile && objective.thinkingProfile.length > 0) {
+                                achievement.thinkingTotal += objective.thinkingProfile.length;
+                                if (passed) achievement.thinkingAchieved += objective.thinkingProfile.length;
+                            }
+                            
+                            // Count Personal
+                            if (objective.personalProfile && objective.personalProfile.length > 0) {
+                                achievement.personalTotal += objective.personalProfile.length;
+                                if (passed) achievement.personalAchieved += objective.personalProfile.length;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching objectives:', err);
+            }
+        }
+
+        return achievement;
+    };
 
     const handleFetchData = async () => {
         if (!studentId) {
@@ -41,6 +149,7 @@ const StudentInfoPage = () => {
         setError('');
         setStudentData([]);
         setStudentName('');
+        setProfileAchievement(null);
 
         try {
             const res = await fetch(`/api/admin/student?studentId=${studentId}`, { cache: 'no-store' });
@@ -52,6 +161,9 @@ const StudentInfoPage = () => {
             setStudentData(data);
             if (data.length > 0) {
                 setStudentName(data[0].studentName);
+                // Calculate profile achievements
+                const achievements = await calculateProfileAchievement(data);
+                setProfileAchievement(achievements);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -171,15 +283,128 @@ const StudentInfoPage = () => {
                     {error && <p className="message error-message">{error}</p>}
                     
                     {studentData.length > 0 && (
-                        <div className="results-header">
-                            <div>
-                            <h2 className="po-title">Showing results for: {studentName} ({studentId})</h2>
-                            <p className="po-name">Found {studentData.length} assessment records.</p>
+                        <>
+                            <div className="results-header">
+                                <div>
+                                    <h2 className="po-title">Showing results for: {studentName} ({studentId})</h2>
+                                    <p className="po-name">Found {studentData.length} assessment records.</p>
+                                </div>
+                                <button onClick={handleGeneratePdf} className="btn-primary" disabled={loading}>
+                                    Generate PDF
+                                </button>
                             </div>
-                            <button onClick={handleGeneratePdf} className="btn-primary" disabled={loading}>
-                                Generate PDF
-                            </button>
-                        </div>
+
+                            {profileAchievement && (
+                                <div className="card" style={{ marginBottom: '1.5rem' }}>
+                                    <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                                        Profile Achievement Overview
+                                    </h3>
+                                    <div style={{ height: '300px' }}>
+                                        <Bar
+                                            ref={chartRef}
+                                            data={{
+                                                labels: ["Bloom's", 'Fundamental', 'Social', 'Thinking', 'Personal'],
+                                                datasets: [
+                                                    {
+                                                        label: 'Achieved',
+                                                        data: [
+                                                            profileAchievement.bloomsTotal > 0 
+                                                                ? (profileAchievement.bloomsAchieved / profileAchievement.bloomsTotal) * 100 
+                                                                : 0,
+                                                            profileAchievement.fundamentalTotal > 0 
+                                                                ? (profileAchievement.fundamentalAchieved / profileAchievement.fundamentalTotal) * 100 
+                                                                : 0,
+                                                            profileAchievement.socialTotal > 0 
+                                                                ? (profileAchievement.socialAchieved / profileAchievement.socialTotal) * 100 
+                                                                : 0,
+                                                            profileAchievement.thinkingTotal > 0 
+                                                                ? (profileAchievement.thinkingAchieved / profileAchievement.thinkingTotal) * 100 
+                                                                : 0,
+                                                            profileAchievement.personalTotal > 0 
+                                                                ? (profileAchievement.personalAchieved / profileAchievement.personalTotal) * 100 
+                                                                : 0,
+                                                        ],
+                                                        backgroundColor: [
+                                                            'rgba(59, 130, 246, 0.8)',
+                                                            'rgba(16, 185, 129, 0.8)',
+                                                            'rgba(245, 158, 11, 0.8)',
+                                                            'rgba(139, 92, 246, 0.8)',
+                                                            'rgba(236, 72, 153, 0.8)',
+                                                        ],
+                                                        borderColor: [
+                                                            'rgb(59, 130, 246)',
+                                                            'rgb(16, 185, 129)',
+                                                            'rgb(245, 158, 11)',
+                                                            'rgb(139, 92, 246)',
+                                                            'rgb(236, 72, 153)',
+                                                        ],
+                                                        borderWidth: 2,
+                                                    },
+                                                ],
+                                            }}
+                                            options={{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                scales: {
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        max: 100,
+                                                        ticks: {
+                                                            callback: (value) => `${value}%`,
+                                                        },
+                                                    },
+                                                },
+                                                plugins: {
+                                                    legend: {
+                                                        display: false,
+                                                    },
+                                                    tooltip: {
+                                                        callbacks: {
+                                                            label: (context) => {
+                                                                const profileNames = ["Bloom's", 'Fundamental', 'Social', 'Thinking', 'Personal'];
+                                                                const index = context.dataIndex;
+                                                                const totals = [
+                                                                    profileAchievement.bloomsTotal,
+                                                                    profileAchievement.fundamentalTotal,
+                                                                    profileAchievement.socialTotal,
+                                                                    profileAchievement.thinkingTotal,
+                                                                    profileAchievement.personalTotal,
+                                                                ];
+                                                                const achieved = [
+                                                                    profileAchievement.bloomsAchieved,
+                                                                    profileAchievement.fundamentalAchieved,
+                                                                    profileAchievement.socialAchieved,
+                                                                    profileAchievement.thinkingAchieved,
+                                                                    profileAchievement.personalAchieved,
+                                                                ];
+                                                                return `${profileNames[index]}: ${achieved[index]}/${totals[index]} (${context.parsed.y.toFixed(1)}%)`;
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                            }}
+                                        />
+                                    </div>
+                                    <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', fontSize: '0.875rem' }}>
+                                        <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
+                                            <strong>Bloom's:</strong> {profileAchievement.bloomsAchieved}/{profileAchievement.bloomsTotal}
+                                        </div>
+                                        <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
+                                            <strong>Fundamental:</strong> {profileAchievement.fundamentalAchieved}/{profileAchievement.fundamentalTotal}
+                                        </div>
+                                        <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
+                                            <strong>Social:</strong> {profileAchievement.socialAchieved}/{profileAchievement.socialTotal}
+                                        </div>
+                                        <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
+                                            <strong>Thinking:</strong> {profileAchievement.thinkingAchieved}/{profileAchievement.thinkingTotal}
+                                        </div>
+                                        <div style={{ padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.375rem' }}>
+                                            <strong>Personal:</strong> {profileAchievement.personalAchieved}/{profileAchievement.personalTotal}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {loading && <p className="message">Loading data...</p>}
