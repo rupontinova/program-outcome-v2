@@ -10,9 +10,9 @@ interface CourseObjective {
     programOutcome: string;
     displayNumber: number;
     bloomsTaxonomy: string[];
-    knowledgeProfile: string[];
-    complexEngineeringProblem: string[];
-    complexEngineeringActivity: string[];
+    fundamentalProfile: string[];
+    socialProfile: string[];
+    thinkingProfile: string[];
     personalProfile: string[];
 }
 
@@ -26,9 +26,9 @@ interface ApiCourseObjective {
     courseObjective: string;
     mappedProgramOutcome: string;
     bloomsTaxonomy?: string[];
-    knowledgeProfile?: string[];
-    complexEngineeringProblem?: string[];
-    complexEngineeringActivity?: string[];
+    fundamentalProfile?: string[];
+    socialProfile?: string[];
+    thinkingProfile?: string[];
     personalProfile?: string[];
 }
 
@@ -124,9 +124,9 @@ const HomePage = () => {
                 programOutcome: '',
                 displayNumber: prevObjectives.length + 1,
                 bloomsTaxonomy: [],
-                knowledgeProfile: [],
-                complexEngineeringProblem: [],
-                complexEngineeringActivity: [],
+                fundamentalProfile: [],
+                socialProfile: [],
+                thinkingProfile: [],
                 personalProfile: [],
             }
         ]);
@@ -187,9 +187,9 @@ const HomePage = () => {
                             programOutcome: obj.mappedProgramOutcome,
                             displayNumber: index + 1,
                             bloomsTaxonomy: obj.bloomsTaxonomy || [],
-                            knowledgeProfile: obj.knowledgeProfile || [],
-                            complexEngineeringProblem: obj.complexEngineeringProblem || [],
-                            complexEngineeringActivity: obj.complexEngineeringActivity || [],
+                            fundamentalProfile: obj.fundamentalProfile || [],
+                            socialProfile: obj.socialProfile || [],
+                            thinkingProfile: obj.thinkingProfile || [],
                             personalProfile: obj.personalProfile || [],
                         }));
                         setCourseObjectives(loadedObjectives);
@@ -346,7 +346,7 @@ const HomePage = () => {
 
     const handleMultiSelectChange = (
         objectiveId: string, 
-        field: 'bloomsTaxonomy' | 'knowledgeProfile' | 'complexEngineeringProblem' | 'complexEngineeringActivity' | 'personalProfile', 
+        field: 'bloomsTaxonomy' | 'fundamentalProfile' | 'socialProfile' | 'thinkingProfile' | 'personalProfile', 
         value: string
     ) => {
         setCourseObjectives(prev => prev.map(obj => {
@@ -381,9 +381,9 @@ const HomePage = () => {
                 courseObjective: description,
                 mappedProgramOutcome: programOutcome,
                 bloomsTaxonomy: obj.bloomsTaxonomy,
-                knowledgeProfile: obj.knowledgeProfile,
-                complexEngineeringProblem: obj.complexEngineeringProblem,
-                complexEngineeringActivity: obj.complexEngineeringActivity,
+                fundamentalProfile: obj.fundamentalProfile,
+                socialProfile: obj.socialProfile,
+                thinkingProfile: obj.thinkingProfile,
                 personalProfile: obj.personalProfile,
             };
         });
@@ -642,8 +642,8 @@ const HomePage = () => {
                                                         <label className="label-compact">Fundamental (F)</label>
                                                         <div className="multiselect-dropdown compact">
                                                             <button type="button" className="multiselect-toggle compact" onClick={() => toggleDropdown(`${obj.id}-fundamental`)}>
-                                                                <span className={!obj.knowledgeProfile || obj.knowledgeProfile.length === 0 ? 'placeholder' : ''}>
-                                                                    {obj.knowledgeProfile.length > 0 ? obj.knowledgeProfile.join(', ') : "Select"}
+                                                                <span className={!obj.fundamentalProfile || obj.fundamentalProfile.length === 0 ? 'placeholder' : ''}>
+                                                                    {obj.fundamentalProfile.length > 0 ? obj.fundamentalProfile.join(', ') : "Select"}
                                                                 </span>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="16" width="16"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                                                             </button>
@@ -653,8 +653,8 @@ const HomePage = () => {
                                                                         <label key={f.code} className="multiselect-option compact" title={f.text}>
                                                                             <input
                                                                                 type="checkbox"
-                                                                                checked={obj.knowledgeProfile.includes(f.code)}
-                                                                                onChange={() => handleMultiSelectChange(obj.id, 'knowledgeProfile', f.code)}
+                                                                                checked={obj.fundamentalProfile.includes(f.code)}
+                                                                                onChange={() => handleMultiSelectChange(obj.id, 'fundamentalProfile', f.code)}
                                                                             />
                                                                             {f.code}
                                                                         </label>
@@ -668,8 +668,8 @@ const HomePage = () => {
                                                         <label className="label-compact">Social (S)</label>
                                                         <div className="multiselect-dropdown compact">
                                                             <button type="button" className="multiselect-toggle compact" onClick={() => toggleDropdown(`${obj.id}-social`)}>
-                                                                <span className={!obj.complexEngineeringProblem || obj.complexEngineeringProblem.length === 0 ? 'placeholder' : ''}>
-                                                                    {obj.complexEngineeringProblem.length > 0 ? obj.complexEngineeringProblem.join(', ') : "Select"}
+                                                                <span className={!obj.socialProfile || obj.socialProfile.length === 0 ? 'placeholder' : ''}>
+                                                                    {obj.socialProfile.length > 0 ? obj.socialProfile.join(', ') : "Select"}
                                                                 </span>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="16" width="16"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                                                             </button>
@@ -679,8 +679,8 @@ const HomePage = () => {
                                                                         <label key={s.code} className="multiselect-option compact" title={s.text}>
                                                                             <input
                                                                                 type="checkbox"
-                                                                                checked={obj.complexEngineeringProblem.includes(s.code)}
-                                                                                onChange={() => handleMultiSelectChange(obj.id, 'complexEngineeringProblem', s.code)}
+                                                                                checked={obj.socialProfile.includes(s.code)}
+                                                                                onChange={() => handleMultiSelectChange(obj.id, 'socialProfile', s.code)}
                                                                             />
                                                                             {s.code}
                                                                         </label>
@@ -694,8 +694,8 @@ const HomePage = () => {
                                                         <label className="label-compact">Thinking (T)</label>
                                                         <div className="multiselect-dropdown compact">
                                                             <button type="button" className="multiselect-toggle compact" onClick={() => toggleDropdown(`${obj.id}-thinking`)}>
-                                                                <span className={!obj.complexEngineeringActivity || obj.complexEngineeringActivity.length === 0 ? 'placeholder' : ''}>
-                                                                    {obj.complexEngineeringActivity.length > 0 ? obj.complexEngineeringActivity.join(', ') : "Select"}
+                                                                <span className={!obj.thinkingProfile || obj.thinkingProfile.length === 0 ? 'placeholder' : ''}>
+                                                                    {obj.thinkingProfile.length > 0 ? obj.thinkingProfile.join(', ') : "Select"}
                                                                 </span>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" height="16" width="16"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                                                             </button>
@@ -705,8 +705,8 @@ const HomePage = () => {
                                                                         <label key={t.code} className="multiselect-option compact" title={t.text}>
                                                                             <input
                                                                                 type="checkbox"
-                                                                                checked={obj.complexEngineeringActivity.includes(t.code)}
-                                                                                onChange={() => handleMultiSelectChange(obj.id, 'complexEngineeringActivity', t.code)}
+                                                                                checked={obj.thinkingProfile.includes(t.code)}
+                                                                                onChange={() => handleMultiSelectChange(obj.id, 'thinkingProfile', t.code)}
                                                                             />
                                                                             {t.code}
                                                                         </label>

@@ -21,9 +21,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 courseObjective: obj.courseObjective,
                 mappedProgramOutcome: obj.mappedProgramOutcome,
                 bloomsTaxonomy: obj.bloomsTaxonomy || [],
-                knowledgeProfile: obj.knowledgeProfile || [],
-                complexEngineeringProblem: obj.complexEngineeringProblem || [],
-                complexEngineeringActivity: obj.complexEngineeringActivity || [],
+                fundamentalProfile: obj.fundamentalProfile || [],
+                socialProfile: obj.socialProfile || [],
+                thinkingProfile: obj.thinkingProfile || [],
                 personalProfile: obj.personalProfile || [],
             }));
 
