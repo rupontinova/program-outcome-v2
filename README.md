@@ -8,7 +8,7 @@
 
 **An Outcome-Based Education (OBE) System for Bangladesh University of Professionals**
 
-[🌐 Live Application](https://program-outcome-v2.vercel.app) | [📖 Documentation](#features) | [🚀 Quick Start](#getting-started)
+[🌐 Live Application](https://program-outcome-v2.vercel.app) | [📖 Documentation](public/SRS_SRE.pdf)
 
 </div>
 
